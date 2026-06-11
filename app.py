@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template_string, redirect, session
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "mi_clave_secreta_super_segura_para_el_prode"
@@ -16,12 +16,12 @@ usuarios_db = {
     "rojo": None
 }
 
-# Fixture real actualizado con las banderas
+# Banderas cambiadas por links a imágenes reales (.png)
 partidos = [
-    {"id": 1, "local": "México", "bandera_local": "🇲🇽", "visitante": "Sudáfrica", "bandera_visitante": "🇿🇦", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-11 16:00"},
-    {"id": 2, "local": "Corea del Sur", "bandera_local": "🇰🇷", "visitante": "Rep. Checa", "bandera_visitante": "🇨🇿", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-11 23:00"},
-    {"id": 3, "local": "Canadá", "bandera_local": "🇨🇦", "visitante": "Bosnia", "bandera_visitante": "🇧🇦", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 16:00"},
-    {"id": 4, "local": "EE.UU.", "bandera_local": "🇺🇸", "visitante": "Paraguay", "bandera_visitante": "🇵🇾", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 22:00"}
+    {"id": 1, "local": "México", "bandera_local": "https://flagcdn.com/w40/mx.png", "visitante": "Sudáfrica", "bandera_visitante": "https://flagcdn.com/w40/za.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-11 16:00"},
+    {"id": 2, "local": "Corea del Sur", "bandera_local": "https://flagcdn.com/w40/kr.png", "visitante": "Rep. Checa", "bandera_visitante": "https://flagcdn.com/w40/cz.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-11 23:00"},
+    {"id": 3, "local": "Canadá", "bandera_local": "https://flagcdn.com/w40/ca.png", "visitante": "Bosnia", "bandera_visitante": "https://flagcdn.com/w40/ba.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 16:00"},
+    {"id": 4, "local": "EE.UU.", "bandera_local": "https://flagcdn.com/w40/us.png", "visitante": "Paraguay", "bandera_visitante": "https://flagcdn.com/w40/py.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 22:00"}
 ]
 
 pronosticos = []
@@ -61,28 +61,29 @@ TEMPLATE = """
     <meta charset="UTF-8">
     <title>Prode del Mundial</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f9; }
-        .nav { display: flex; justify-content: space-between; background: #333; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #1a1a1a; color: #fff; }
+        .nav { display: flex; justify-content: space-between; background: #2d2d2d; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
         .nav a { color: #ff4d4d; text-decoration: none; font-weight: bold; }
         .contenedor { display: flex; gap: 20px; }
         .columna-izq { flex: 2; }
         .columna-der { flex: 1; }
-        .caja { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+        .caja { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); }
+        h2 { color: #fff; margin-top: 0; }
         
-        /* DISEÑO DE TARJETAS DE PARTIDOS */
-        .partido-tarjeta { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #eee; }
+        .partido-tarjeta { display: flex; justify-content: space-between; align-items: center; background: #3d3d3d; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #4d4d4d; }
         .equipo { display: flex; flex-direction: column; align-items: center; width: 30%; }
-        .bandera { font-size: 35px; line-height: 1; }
-        .nombre-equipo { font-weight: bold; margin-top: 5px; text-align: center; font-size: 14px; color: #333; }
+        .bandera { width: 45px; height: auto; border-radius: 4px; box-shadow: 0px 0px 5px rgba(0,0,0,0.3); }
+        .nombre-equipo { font-weight: bold; margin-top: 8px; text-align: center; font-size: 15px; color: #e0e0e0; }
         .inputs-goles { display: flex; align-items: center; gap: 10px; }
-        .input-gol { width: 50px; text-align: center; font-size: 20px; font-weight: bold; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        .vs { font-weight: bold; color: #777; }
+        .input-gol { width: 50px; text-align: center; font-size: 20px; font-weight: bold; padding: 5px; border: none; border-radius: 4px; background: #555; color: white; }
+        .input-gol:focus { outline: 2px solid #28a745; background: #666; }
+        .vs { font-weight: bold; color: #999; }
         .btn-guardar { background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; padding: 10px 15px; font-weight: bold; height: 100%; transition: background 0.2s; }
         .btn-guardar:hover { background-color: #218838; }
         
-        .ranking-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; font-size: 18px; }
-        .puesto-1 { font-weight: bold; color: #d4af37; }
-        .alerta { color: #666; font-style: italic; text-align: center; }
+        .ranking-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #4d4d4d; font-size: 18px; }
+        .puesto-1 { font-weight: bold; color: #ffd700; }
+        .alerta { color: #aaa; font-style: italic; text-align: center; }
         ul { padding-left: 20px; }
         li { margin-bottom: 8px; font-size: 16px; }
     </style>
@@ -95,7 +96,7 @@ TEMPLATE = """
 
     <div class="contenedor">
         <div class="columna-izq">
-            <div class="caja" style="background-color: #f0f8ff;">
+            <div class="caja">
                 <h2>🗓️ Partidos de Hoy</h2>
                 {% set cont = namespace(hay=false) %}
                 {% for p in partidos %}
@@ -105,7 +106,7 @@ TEMPLATE = """
                             <input type="hidden" name="partido_id" value="{{ p.id }}">
                             
                             <div class="equipo">
-                                <span class="bandera">{{ p.bandera_local }}</span>
+                                <img src="{{ p.bandera_local }}" class="bandera" alt="{{ p.local }}">
                                 <span class="nombre-equipo">{{ p.local }}</span>
                             </div>
                             
@@ -116,7 +117,7 @@ TEMPLATE = """
                             </div>
                             
                             <div class="equipo">
-                                <span class="bandera">{{ p.bandera_visitante }}</span>
+                                <img src="{{ p.bandera_visitante }}" class="bandera" alt="{{ p.visitante }}">
                                 <span class="nombre-equipo">{{ p.visitante }}</span>
                             </div>
                             
@@ -145,7 +146,7 @@ TEMPLATE = """
         </div>
         
         <div class="columna-der">
-            <div class="caja" style="background-color: #e9ecef;">
+            <div class="caja">
                 <h2>🏆 Tabla de Posiciones</h2>
                 {% for usuario, stats in ranking %}
                     <div class="ranking-item {% if loop.first %}puesto-1{% endif %}">
@@ -167,13 +168,15 @@ AUTH_TEMPLATE = """
     <meta charset="UTF-8">
     <title>Ingresar al Prode</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-caja { background: white; padding: 30px; border-radius: 8px; box-shadow: 0px 0px 15px rgba(0,0,0,0.2); width: 320px; }
-        h2 { text-align: center; color: #333; margin-top: 0; }
-        input, button { margin: 10px 0; padding: 12px; font-size: 16px; width: 100%; box-sizing: border-box; }
-        button { background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        body { font-family: Arial, sans-serif; background-color: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-caja { background: #2d2d2d; padding: 30px; border-radius: 8px; box-shadow: 0px 4px 15px rgba(0,0,0,0.5); width: 320px; }
+        h2 { text-align: center; color: #fff; margin-top: 0; }
+        input, button { margin: 10px 0; padding: 12px; font-size: 16px; width: 100%; box-sizing: border-box; border-radius: 4px; border: none; }
+        input { background: #444; color: white; }
+        input:focus { outline: 2px solid #007bff; }
+        button { background-color: #28a745; color: white; cursor: pointer; font-weight: bold; }
         .btn-azul { background-color: #007bff; }
-        .error { color: red; text-align: center; font-weight: bold; }
+        .error { color: #ff4d4d; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -199,9 +202,11 @@ def index():
         return redirect("/login")
     ranking_actual = obtener_ranking()
     
-    # Tomamos la hora y el día de hoy para hacer el filtrado automático
-    ahora_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    # ⏱️ RELOJ SINCRONIZADO: Forzamos la hora UTC a la hora local de Buenos Aires restando 3 horas
+    ahora_arg = datetime.utcnow() - timedelta(hours=3)
+    
+    ahora_str = ahora_arg.strftime("%Y-%m-%d %H:%M")
+    hoy_str = ahora_arg.strftime("%Y-%m-%d")
     
     return render_template_string(TEMPLATE, partidos=partidos, pronosticos=pronosticos, ranking=ranking_actual, ahora=ahora_str, hoy=hoy_str, usuario_actual=session["usuario"])
 
@@ -248,7 +253,6 @@ def guardar():
     partido_elegido = next(p for p in partidos if p["id"] == partido_id)
     usuario = session["usuario"]
     
-    # REESCRITURA: Si el usuario ya había apostado para este partido, le borramos la jugada vieja
     global pronosticos
     pronosticos = [p for p in pronosticos if not (p["usuario"] == usuario and p["partido_id"] == partido_id)]
     
