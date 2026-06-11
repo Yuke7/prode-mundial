@@ -2,7 +2,7 @@ from flask import Flask, request, render_template_string, redirect, session
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = "mi_clave_secreta_super_segura_para_el_prode"
+app.secret_key = "clave_secreta_prode"
 
 ADMIN_PASS = "admin123"
 
