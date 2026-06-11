@@ -4,7 +4,6 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "mi_clave_secreta_super_segura_para_el_prode"
 
-# 📋 LISTA BLANCA DE INVITADOS ACTUALIZADA
 usuarios_db = {
     "yuke": None,
     "juan": None,
@@ -17,10 +16,12 @@ usuarios_db = {
     "rojo": None
 }
 
+# Fixture real actualizado con las banderas
 partidos = [
-    {"id": 1, "local": "Argentina", "visitante": "Brasil", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 2, "inicio": "2026-07-15 16:00"},
-    {"id": 2, "local": "River Plate", "visitante": "Boca Juniors", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-10 10:00"},
-    {"id": 3, "local": "San Lorenzo", "visitante": "Huracán", "goles_local_real": 0, "goles_visitante_real": 0, "multiplicador": 1, "inicio": "2026-07-20 18:00"}
+    {"id": 1, "local": "México", "bandera_local": "🇲🇽", "visitante": "Sudáfrica", "bandera_visitante": "🇿🇦", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-11 16:00"},
+    {"id": 2, "local": "Corea del Sur", "bandera_local": "🇰🇷", "visitante": "Rep. Checa", "bandera_visitante": "🇨🇿", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-11 23:00"},
+    {"id": 3, "local": "Canadá", "bandera_local": "🇨🇦", "visitante": "Bosnia", "bandera_visitante": "🇧🇦", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 16:00"},
+    {"id": 4, "local": "EE.UU.", "bandera_local": "🇺🇸", "visitante": "Paraguay", "bandera_visitante": "🇵🇾", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 22:00"}
 ]
 
 pronosticos = []
@@ -30,7 +31,7 @@ def obtener_ranking():
     for p in pronosticos:
         usuario = p["usuario"]
         if usuario not in usuarios_ranking:
-            usuarios_ranking[usuario] = {"puntos": 0, "plenos": 0}
+            continue
             
         partido_real = next((partido for partido in partidos if partido["id"] == p["partido_id"]), None)
         
@@ -67,53 +68,77 @@ TEMPLATE = """
         .columna-izq { flex: 2; }
         .columna-der { flex: 1; }
         .caja { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
-        input, select, button { margin: 5px 0; padding: 10px; font-size: 16px; width: 100%; box-sizing: border-box; }
-        .corto { width: 60px; display: inline; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px; }
-        button:hover { background-color: #0056b3; }
+        
+        /* DISEÑO DE TARJETAS DE PARTIDOS */
+        .partido-tarjeta { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 2px solid #eee; }
+        .equipo { display: flex; flex-direction: column; align-items: center; width: 30%; }
+        .bandera { font-size: 35px; line-height: 1; }
+        .nombre-equipo { font-weight: bold; margin-top: 5px; text-align: center; font-size: 14px; color: #333; }
+        .inputs-goles { display: flex; align-items: center; gap: 10px; }
+        .input-gol { width: 50px; text-align: center; font-size: 20px; font-weight: bold; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .vs { font-weight: bold; color: #777; }
+        .btn-guardar { background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; padding: 10px 15px; font-weight: bold; height: 100%; transition: background 0.2s; }
+        .btn-guardar:hover { background-color: #218838; }
+        
         .ranking-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; font-size: 18px; }
         .puesto-1 { font-weight: bold; color: #d4af37; }
-        .alerta { color: red; font-size: 14px; }
+        .alerta { color: #666; font-style: italic; text-align: center; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; font-size: 16px; }
     </style>
 </head>
 <body>
     <div class="nav">
-        <span>Hola, <strong>{{ usuario_actual }}</strong> ⚽ Bienvenido al Prode</span>
+        <span>Hola, <strong>{{ usuario_actual|capitalize }}</strong> ⚽ Bienvenido al Prode</span>
         <a href="/logout">Cerrar Sesión 🚪</a>
     </div>
 
     <div class="contenedor">
         <div class="columna-izq">
-            <div class="caja">
-                <h2>Cargá tu pronóstico</h2>
-                <form action="/guardar" method="POST">
-                    <label>Elegí el partido:</label><br>
-                    <select name="partido_id">
-                        {% for p in partidos %}
-                            {% if p.inicio > ahora %}
-                                <option value="{{ p.id }}">{{ p.local }} vs {{ p.visitante }} {% if p.multiplicador > 1 %}(Vale x{{ p.multiplicador }}){% endif %}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                    <p class="alerta">Nota: Los partidos que ya empezaron no aparecen.</p>
-                    
-                    <label>Goles Local:</label>
-                    <input type="number" name="goles_local" min="0" required class="corto">
-                    
-                    <label>Goles Visitante:</label>
-                    <input type="number" name="goles_visitante" min="0" required class="corto"><br><br>
-                    
-                    <button type="submit">Enviar Jugada</button>
-                </form>
+            <div class="caja" style="background-color: #f0f8ff;">
+                <h2>🗓️ Partidos de Hoy</h2>
+                {% set cont = namespace(hay=false) %}
+                {% for p in partidos %}
+                    {% if p.inicio > ahora and p.inicio.startswith(hoy) %}
+                        {% set cont.hay = true %}
+                        <form action="/guardar" method="POST" class="partido-tarjeta">
+                            <input type="hidden" name="partido_id" value="{{ p.id }}">
+                            
+                            <div class="equipo">
+                                <span class="bandera">{{ p.bandera_local }}</span>
+                                <span class="nombre-equipo">{{ p.local }}</span>
+                            </div>
+                            
+                            <div class="inputs-goles">
+                                <input type="number" name="goles_local" class="input-gol" min="0" required>
+                                <span class="vs">-</span>
+                                <input type="number" name="goles_visitante" class="input-gol" min="0" required>
+                            </div>
+                            
+                            <div class="equipo">
+                                <span class="bandera">{{ p.bandera_visitante }}</span>
+                                <span class="nombre-equipo">{{ p.visitante }}</span>
+                            </div>
+                            
+                            <button type="submit" class="btn-guardar">Cargar</button>
+                        </form>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if not cont.hay %}
+                    <p class="alerta">No hay más partidos disponibles para apostar en el día de la fecha.</p>
+                {% endif %}
             </div>
             
             <div class="caja">
-                <h2>Apuestas registradas</h2>
+                <h2>Tus apuestas para hoy</h2>
                 <ul>
                 {% for prono in pronosticos %}
-                    <li><strong>{{ prono.usuario }}</strong>: {{ prono.local }} {{ prono.goles_local }} - {{ prono.goles_visitante }} {{ prono.visitante }}</li>
+                    {% if prono.usuario == usuario_actual %}
+                        <li>{{ prono.local }} <strong>{{ prono.goles_local }} - {{ prono.goles_visitante }}</strong> {{ prono.visitante }}</li>
+                    {% endif %}
                 {% else %}
-                    <li>Todavía nadie cargó nada.</li>
+                    <li>Todavía no cargaste nada.</li>
                 {% endfor %}
                 </ul>
             </div>
@@ -124,7 +149,7 @@ TEMPLATE = """
                 <h2>🏆 Tabla de Posiciones</h2>
                 {% for usuario, stats in ranking %}
                     <div class="ranking-item {% if loop.first %}puesto-1{% endif %}">
-                        <span>{{ loop.index }}. {{ usuario }} <small>({{ stats.plenos }} plenos)</small></span>
+                        <span>{{ loop.index }}. {{ usuario|capitalize }} <small>({{ stats.plenos }} plenos)</small></span>
                         <strong>{{ stats.puntos }} pts</strong>
                     </div>
                 {% endfor %}
@@ -173,8 +198,12 @@ def index():
     if "usuario" not in session:
         return redirect("/login")
     ranking_actual = obtener_ranking()
+    
+    # Tomamos la hora y el día de hoy para hacer el filtrado automático
     ahora_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-    return render_template_string(TEMPLATE, partidos=partidos, pronosticos=pronosticos, ranking=ranking_actual, ahora=ahora_str, usuario_actual=session["usuario"])
+    hoy_str = datetime.now().strftime("%Y-%m-%d")
+    
+    return render_template_string(TEMPLATE, partidos=partidos, pronosticos=pronosticos, ranking=ranking_actual, ahora=ahora_str, hoy=hoy_str, usuario_actual=session["usuario"])
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -214,16 +243,24 @@ def logout():
 def guardar():
     if "usuario" not in session:
         return redirect("/login")
+        
     partido_id = int(request.form["partido_id"])
     partido_elegido = next(p for p in partidos if p["id"] == partido_id)
+    usuario = session["usuario"]
+    
+    # REESCRITURA: Si el usuario ya había apostado para este partido, le borramos la jugada vieja
+    global pronosticos
+    pronosticos = [p for p in pronosticos if not (p["usuario"] == usuario and p["partido_id"] == partido_id)]
+    
     nuevo_pronostico = {
-        "usuario": session["usuario"],
+        "usuario": usuario,
         "partido_id": partido_id,
         "local": partido_elegido["local"],
         "visitante": partido_elegido["visitante"],
         "goles_local": request.form["goles_local"],
         "goles_visitante": request.form["goles_visitante"]
     }
+    
     pronosticos.append(nuevo_pronostico)
     return redirect("/")
 
