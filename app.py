@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = "mi_clave_secreta_super_segura_para_el_prode"
 
+ADMIN_PASS = "admin123"
+
 usuarios_db = {
     "yuke": None, "juan": None, "mauri": None, "fenix": None, 
     "braii": None, "didi": None, "fake": None, "nikotina": None, "rojo": None
@@ -31,68 +33,104 @@ def obtener_ranking():
             if glr == glp and gvr == gvp:
                 p_base = 3
                 usuarios_ranking[u]["plenos"] += 1
-            else:
-                if (glr == gvr and glp == gvp) or (glr > gvr and glp > gvp) or (glr < gvr and glp < gvp):
-                    p_base = 1
+            elif (glr == gvr and glp == gvp) or (glr > gvr and glp > gvp) or (glr < gvr and glp < gvp):
+                p_base = 1
             usuarios_ranking[u]["puntos"] += (p_base * pr["multiplicador"])
     return sorted(usuarios_ranking.items(), key=lambda x: (x[1]["puntos"], x[1]["plenos"]), reverse=True)
 
 TEMPLATE = """
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8"><title>Prode</title>
-    <style>
-        body { font-family: Arial; margin: 40px; background-color: #1a1a1a; color: #fff; }
-        .nav { display: flex; justify-content: space-between; background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .contenedor { display: flex; gap: 20px; }
-        .columna-izq { flex: 2; } .columna-der { flex: 1; }
-        .caja { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .partido-tarjeta { display: flex; justify-content: space-between; align-items: center; background: #3d3d3d; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
-        .input-gol { width: 40px; text-align: center; padding: 5px; background: #555; color: white; border: none; }
-        .historial-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #444; }
-    </style>
-</head>
-<body>
-    <div class="nav"><span>Usuario: <strong>{{ usuario_actual|capitalize }}</strong></span><a href="/logout" style="color:red;">Salir</a></div>
-    <div class="contenedor">
-        <div class="columna-izq">
-            <div class="caja">
-                <h2>🗓️ Partidos</h2>
-                {% for p in partidos %}
-                    {% if p.inicio > ahora %}
-                        <form action="/guardar" method="POST" class="partido-tarjeta">
-                            <input type="hidden" name="partido_id" value="{{ p.id }}">
-                            <span>{{ p.local }}</span>
-                            <input type="number" name="goles_local" class="input-gol" required> - 
-                            <input type="number" name="goles_visitante" class="input-gol" required>
-                            <span>{{ p.visitante }}</span>
-                            <button type="submit">Cargar</button>
-                        </form>
-                    {% endif %}
-                {% endfor %}
-            </div>
-            <div class="caja">
-                <h2>📜 Tus Apuestas (Historial)</h2>
-                {% for prono in pronosticos if prono.usuario == usuario_actual %}
-                    <div class="historial-item">
-                        <span>{{ prono.local }} vs {{ prono.visitante }}</span>
-                        <strong>{{ prono.goles_local }} - {{ prono.goles_visitante }}</strong>
-                    </div>
-                {% endfor %}
-            </div>
+<html lang="es"><head><meta charset="UTF-8"><title>Prode</title>
+<style>
+    body { font-family: Arial; margin: 40px; background-color: #1a1a1a; color: #fff; }
+    .nav { display: flex; justify-content: space-between; background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .contenedor { display: flex; gap: 20px; }
+    .columna-izq { flex: 2; } .columna-der { flex: 1; }
+    .caja { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .partido-tarjeta { display: flex; justify-content: space-between; align-items: center; background: #3d3d3d; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .input-gol { width: 40px; text-align: center; padding: 5px; background: #555; color: white; border: none; }
+    .historial-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #444; }
+</style></head><body>
+<div class="nav"><span>Usuario: <strong>{{ usuario_actual|capitalize }}</strong></span><a href="/logout" style="color:red;">Salir</a></div>
+<div class="contenedor">
+    <div class="columna-izq">
+        <div class="caja">
+            <h2>🗓️ Partidos</h2>
+            {% for p in partidos %}{% if p.inicio > ahora %}
+            <form action="/guardar" method="POST" class="partido-tarjeta">
+                <input type="hidden" name="partido_id" value="{{ p.id }}">
+                <span>{{ p.local }}</span> <input type="number" name="goles_local" class="input-gol" required> - 
+                <input type="number" name="goles_visitante" class="input-gol" required> <span>{{ p.visitante }}</span>
+                <button type="submit">Cargar</button>
+            </form>
+            {% endif %}{% endfor %}
         </div>
-        <div class="columna-der">
-            <div class="caja">
-                <h2>🏆 Posiciones</h2>
-                {% for u, s in ranking %}
-                    <div class="historial-item"><span>{{ u|capitalize }}</span><strong>{{ s.puntos }} pts</strong></div>
-                {% endfor %}
-            </div>
+        <div class="caja">
+            <h2>📜 Historial</h2>
+            {% for prono in pronosticos if prono.usuario == usuario_actual %}
+            <div class="historial-item"><span>{{ prono.local }} vs {{ prono.visitante }}</span><strong>{{ prono.goles_local }} - {{ prono.goles_visitante }}</strong></div>
+            {% endfor %}
         </div>
     </div>
-</body>
-</html>
+    <div class="columna-der">
+        <div class="caja">
+            <h2>🏆 Posiciones</h2>
+            {% for u, s in ranking %}<div class="historial-item"><span>{{ u|capitalize }}</span><strong>{{ s.puntos }} pts</strong></div>{% endfor %}
+        </div>
+    </div>
+</div></body></html>
 """
-# ... (Mantené el resto del código AUTH_TEMPLATE, app.route "/", "/login", "/logout", "/guardar" igual que antes)
-# (Recordá cerrar con el if __name__ == "__main__": app.run(debug=True))
+
+@app.route("/")
+def index():
+    if "usuario" not in session: return redirect("/login")
+    ahora_arg = datetime.utcnow() - timedelta(hours=3)
+    return render_template_string(TEMPLATE, partidos=partidos, pronosticos=pronosticos, ranking=obtener_ranking(), ahora=ahora_arg.strftime("%Y-%m-%d %H:%M"), hoy=ahora_arg.strftime("%Y-%m-%d"), usuario_actual=session["usuario"])
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        u = request.form["usuario"].strip().lower()
+        p = request.form["password"]
+        if request.form["accion"] == "login":
+            if u in usuarios_db and usuarios_db[u] == p:
+                session["usuario"] = u
+                return redirect("/")
+        elif request.form["accion"] == "registro" and u in usuarios_db and usuarios_db[u] is None and len(p) >= 4:
+            usuarios_db[u] = p
+            session["usuario"] = u
+            return redirect("/")
+    return '<body style="background:#222;color:white;text-align:center;padding:50px;"><h2>⚽ Entrar</h2><form method="POST"><input name="usuario" placeholder="Usuario"><input type="password" name="password" placeholder="Contraseña"><button name="accion" value="login">Entrar</button><button name="accion" value="registro">Registrarse</button></form></body>'
+
+@app.route("/logout")
+def logout():
+    session.pop("usuario", None)
+    return redirect("/login")
+
+@app.route("/guardar", methods=["POST"])
+def guardar():
+    if "usuario" not in session: return redirect("/login")
+    p_id = int(request.form["partido_id"])
+    p_el = next(p for p in partidos if p["id"] == p_id)
+    global pronosticos
+    pronosticos = [p for p in pronosticos if not (p["usuario"] == session["usuario"] and p["partido_id"] == p_id)]
+    pronosticos.append({"usuario": session["usuario"], "partido_id": p_id, "local": p_el["local"], "visitante": p_el["visitante"], "goles_local": request.form["goles_local"], "goles_visitante": request.form["goles_visitante"]})
+    return redirect("/")
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    if request.method == "POST" and request.form.get("password") == ADMIN_PASS: session["admin"] = True
+    if session.get("admin"):
+        return render_template_string('<body style="background:#222;color:white;"><h2>Admin</h2>{% for p in partidos %}<form method="POST" action="/admin/actualizar"><input type="hidden" name="id" value="{{p.id}}">{{p.local}} vs {{p.visitante}} <input name="gl" value="{{p.goles_local_real or 0}}" style="width:40px;">-<input name="gv" value="{{p.goles_visitante_real or 0}}" style="width:40px;"><button>Guardar</button></form>{% endfor %}</body>', partidos=partidos)
+    return '<form method="POST">Password: <input type="password" name="password"><button>Entrar</button></form>'
+
+@app.route("/admin/actualizar", methods=["POST"])
+def admin_actualizar():
+    if not session.get("admin"): return "No"
+    p = next(pt for pt in partidos if pt["id"] == int(request.form["id"]))
+    p["goles_local_real"] = int(request.form["gl"])
+    p["goles_visitante_real"] = int(request.form["gv"])
+    return redirect("/admin")
+
+if __name__ == "__main__":
+    app.run(debug=True)
