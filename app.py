@@ -1,10 +1,10 @@
+import json
+import os
 from flask import Flask, request, render_template_string, redirect, session
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "clave_secreta_prode"
-
-ADMIN_PASS = "admin123"
+DB_FILE = "datos.json"
 
 usuarios_db = {
     "yuke": None, "juan": None, "mauri": None, "fenix": None, 
@@ -12,17 +12,21 @@ usuarios_db = {
 }
 
 partidos = [
-    {"id": 1, "local": "México", "bandera_local": "https://flagcdn.com/w40/mx.png", "visitante": "Sudáfrica", "bandera_visitante": "https://flagcdn.com/w40/za.png", "goles_local_real": None, "goles_visitante_real": None, "inicio": "2026-06-11 19:00"},
-    {"id": 2, "local": "Corea del Sur", "bandera_local": "https://flagcdn.com/w40/kr.png", "visitante": "Rep. Checa", "bandera_visitante": "https://flagcdn.com/w40/cz.png", "goles_local_real": None, "goles_visitante_real": None, "inicio": "2026-06-12 02:00"},
-    {"id": 3, "local": "Canadá", "bandera_local": "https://flagcdn.com/w40/ca.png", "visitante": "Bosnia", "bandera_visitante": "https://flagcdn.com/w40/ba.png", "goles_local_real": None, "goles_visitante_real": None, "inicio": "2026-06-12 19:00"},
-    {"id": 4, "local": "EE.UU.", "bandera_local": "https://flagcdn.com/w40/us.png", "visitante": "Paraguay", "bandera_visitante": "https://flagcdn.com/w40/py.png", "goles_local_real": None, "goles_visitante_real": None, "inicio": "2026-06-13 01:00"}
+    {"id": 1, "local": "México", "bandera_local": "https://flagcdn.com/w40/mx.png", "visitante": "Sudáfrica", "bandera_visitante": "https://flagcdn.com/w40/za.png", "inicio": "2026-06-11 19:00"},
+    {"id": 2, "local": "Corea del Sur", "bandera_local": "https://flagcdn.com/w40/kr.png", "visitante": "Rep. Checa", "bandera_visitante": "https://flagcdn.com/w40/cz.png", "inicio": "2026-06-12 02:00"},
+    {"id": 3, "local": "Canadá", "bandera_local": "https://flagcdn.com/w40/ca.png", "visitante": "Bosnia", "bandera_visitante": "https://flagcdn.com/w40/ba.png", "inicio": "2026-06-12 19:00"},
+    {"id": 4, "local": "EE.UU.", "bandera_local": "https://flagcdn.com/w40/us.png", "visitante": "Paraguay", "bandera_visitante": "https://flagcdn.com/w40/py.png", "inicio": "2026-06-13 01:00"}
 ]
 
-pronosticos = []
+def cargar_pronosticos():
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, "r") as f: return json.load(f)
+    return []
 
-def obtener_ranking():
-    usuarios_ranking = {user: {"puntos": 0} for user in usuarios_db.keys()}
-    return sorted(usuarios_ranking.items(), key=lambda x: x[1]["puntos"], reverse=True)
+def guardar_pronostico(nuevo):
+    datos = cargar_pronosticos()
+    datos.append(nuevo)
+    with open(DB_FILE, "w") as f: json.dump(datos, f)
 
 TEMPLATE = """
 <!DOCTYPE html>
@@ -61,7 +65,7 @@ TEMPLATE = """
     </div>
     <div class="caja">
         <h2>🏆 Posiciones</h2>
-        {% for u, s in ranking %}<div>{{ u|capitalize }}: <strong>{{ s.puntos }} pts</strong></div>{% endfor %}
+        {% for u in usuarios_db %}<div>{{ u|capitalize }}: <strong>0 pts</strong></div>{% endfor %}
     </div>
 </div></body></html>
 """
@@ -69,15 +73,16 @@ TEMPLATE = """
 @app.route("/")
 def index():
     if "usuario" not in session: return redirect("/login")
-    return render_template_string(TEMPLATE, partidos=partidos, pronosticos=pronosticos, ranking=obtener_ranking(), usuario_actual=session["usuario"])
+    return render_template_string(TEMPLATE, partidos=partidos, pronosticos=cargar_pronosticos(), usuarios_db=usuarios_db, usuario_actual=session["usuario"])
 
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    u = request.form["usuario"].strip().lower()
-    if u in usuarios_db:
-        session["usuario"] = u
-        return redirect("/")
-    return "Usuario no encontrado"
+    if request.method == "POST":
+        u = request.form["usuario"].strip().lower()
+        if u in usuarios_db:
+            session["usuario"] = u
+            return redirect("/")
+    return '<body style="background:#222;color:white;text-align:center;padding:50px;"><h2>⚽ Entrar</h2><form method="POST"><input name="usuario" placeholder="Usuario"><button>Entrar</button></form></body>'
 
 @app.route("/logout")
 def logout():
@@ -89,8 +94,7 @@ def guardar():
     if "usuario" not in session: return redirect("/")
     p_id = int(request.form["partido_id"])
     p_el = next(p for p in partidos if p["id"] == p_id)
-    global pronosticos
-    pronosticos.append({"usuario": session["usuario"], "local": p_el["local"], "visitante": p_el["visitante"], "goles_local": request.form["goles_local"], "goles_visitante": request.form["goles_visitante"]})
+    guardar_pronostico({"usuario": session["usuario"], "local": p_el["local"], "visitante": p_el["visitante"], "goles_local": request.form["goles_local"], "goles_visitante": request.form["goles_visitante"]})
     return redirect("/")
 
 if __name__ == "__main__":
