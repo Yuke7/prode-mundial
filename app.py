@@ -13,9 +13,9 @@ usuarios_db = {
 
 partidos = [
     {"id": 1, "local": "México", "bandera_local": "https://flagcdn.com/w40/mx.png", "visitante": "Sudáfrica", "bandera_visitante": "https://flagcdn.com/w40/za.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-11 19:00"},
-    {"id": 2, "local": "Corea del Sur", "bandera_local": "https://flagcdn.com/w40/kr.png", "visitante": "Rep. Checa", "bandera_visitante": "https://flagcdn.com/w40/cz.png", "inicio": "2026-06-12 02:00"},
-    {"id": 3, "local": "Canadá", "bandera_local": "https://flagcdn.com/w40/ca.png", "visitante": "Bosnia", "bandera_visitante": "https://flagcdn.com/w40/ba.png", "inicio": "2026-06-12 19:00"},
-    {"id": 4, "local": "EE.UU.", "bandera_local": "https://flagcdn.com/w40/us.png", "visitante": "Paraguay", "bandera_visitante": "https://flagcdn.com/w40/py.png", "inicio": "2026-06-13 01:00"}
+    {"id": 2, "local": "Corea del Sur", "bandera_local": "https://flagcdn.com/w40/kr.png", "visitante": "Rep. Checa", "bandera_visitante": "https://flagcdn.com/w40/cz.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 02:00"},
+    {"id": 3, "local": "Canadá", "bandera_local": "https://flagcdn.com/w40/ca.png", "visitante": "Bosnia", "bandera_visitante": "https://flagcdn.com/w40/ba.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-12 19:00"},
+    {"id": 4, "local": "EE.UU.", "bandera_local": "https://flagcdn.com/w40/us.png", "visitante": "Paraguay", "bandera_visitante": "https://flagcdn.com/w40/py.png", "goles_local_real": None, "goles_visitante_real": None, "multiplicador": 1, "inicio": "2026-06-13 01:00"}
 ]
 
 pronosticos = []
@@ -42,27 +42,32 @@ TEMPLATE = """
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"><title>Prode</title>
 <style>
-    body { font-family: Arial; margin: 20px; background-color: #1a1a1a; color: #fff; }
-    .caja { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-    .partido-tarjeta { display: flex; justify-content: space-between; align-items: center; background: #3d3d3d; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
-    .input-gol { width: 40px; text-align: center; padding: 5px; background: #555; color: white; border: none; }
+    body { font-family: Arial; margin: 40px; background-color: #1a1a1a; color: #fff; }
+    .nav { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .caja { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .partido-tarjeta { display: flex; justify-content: space-between; align-items: center; background: #3d3d3d; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+    .input-gol { width: 50px; text-align: center; padding: 10px; background: #555; color: white; border: none; border-radius: 4px; }
+    button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
 </style></head><body>
-<div style="background:#2d2d2d; padding:10px; border-radius:8px; margin-bottom:20px;">
-    Usuario: <strong>{{ usuario_actual|capitalize }}</strong> | <a href="/logout" style="color:red;">Salir</a>
+<div class="nav">Usuario: <strong>{{ usuario_actual|capitalize }}</strong> | <a href="/logout" style="color:red;">Salir</a></div>
+<div class="caja">
+    <h2>🗓️ Partidos</h2>
+    {% for p in partidos %}
+    <form action="/guardar" method="POST" class="partido-tarjeta">
+        <input type="hidden" name="partido_id" value="{{ p.id }}">
+        <div style="width:150px;"><img src="{{ p.bandera_local }}" width="30"> {{ p.local }}</div>
+        <strong>{{ p.inicio[11:16] }} hs</strong>
+        <input type="number" name="goles_local" class="input-gol" required> - 
+        <input type="number" name="goles_visitante" class="input-gol" required>
+        <div style="width:150px; text-align:right;">{{ p.visitante }} <img src="{{ p.bandera_visitante }}" width="30"></div>
+        <button type="submit">Cargar</button>
+    </form>
+    {% endfor %}
 </div>
-<h2>🗓️ Partidos</h2>
-{% for p in partidos %}
-<form action="/guardar" method="POST" class="partido-tarjeta">
-    <input type="hidden" name="partido_id" value="{{ p.id }}">
-    <div style="width:120px;"><img src="{{ p.bandera_local }}" width="20"> {{ p.local }}</div>
-    <strong>{{ p.inicio[11:16] }} hs</strong>
-    <input type="number" name="goles_local" class="input-gol" required> - <input type="number" name="goles_visitante" class="input-gol" required>
-    <div style="width:120px; text-align:right;">{{ p.visitante }} <img src="{{ p.bandera_visitante }}" width="20"></div>
-    <button type="submit">Cargar</button>
-</form>
-{% endfor %}
-<h2>🏆 Posiciones</h2>
-{% for u, s in ranking %}<div>{{ u|capitalize }}: <strong>{{ s.puntos }} pts</strong></div>{% endfor %}
+<div class="caja">
+    <h2>🏆 Posiciones</h2>
+    {% for u, s in ranking %}<div>{{ u|capitalize }}: <strong>{{ s.puntos }} pts</strong></div>{% endfor %}
+</div>
 </body></html>
 """
 
@@ -84,7 +89,7 @@ def login():
             usuarios_db[u] = p
             session["usuario"] = u
             return redirect("/")
-    return '<body style="background:#222;color:white;text-align:center;padding:50px;"><h2>⚽ Entrar</h2><form method="POST"><input name="usuario" placeholder="Usuario"><input type="password" name="password" placeholder="Contraseña"><button name="accion" value="login">Entrar</button><button name="accion" value="registro">Registrar</button></form></body>'
+    return '<body style="background:#222;color:white;text-align:center;padding:50px;"><h2>⚽ Entrar</h2><form method="POST"><input name="usuario" placeholder="Usuario"><input type="password" name="password" placeholder="Contraseña"><br><br><button name="accion" value="login">Entrar</button> <button name="accion" value="registro">Registrarse</button></form></body>'
 
 @app.route("/logout")
 def logout():
