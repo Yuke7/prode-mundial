@@ -1,23 +1,22 @@
 import json
 import os
 from flask import Flask, request, render_template_string, redirect, session
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "clave_secreta_prode"
 DB_FILE = "datos.json"
 
-def ajustar_hora(hora_utc):
-    dt = datetime.strptime(hora_utc, "%H:%M")
-    return (dt - timedelta(hours=3)).strftime("%H:%M")
+usuarios_db = {
+    "yuke": None, "juan": None, "mauri": None, "fenix": None, 
+    "braii": None, "didi": None, "fake": None, "nikotina": None, "rojo": None
+}
 
-usuarios_db = {"yuke": None, "juan": None, "mauri": None, "fenix": None, "braii": None, "didi": None, "fake": None, "nikotina": None, "rojo": None}
-
+# Acá puse directamente los horarios de Argentina para que se vean perfectos
 partidos = [
-    {"id": 1, "local": "México", "bandera_local": "https://flagcdn.com/w40/mx.png", "visitante": "Sudáfrica", "bandera_visitante": "https://flagcdn.com/w40/za.png", "hora_utc": "19:00"},
-    {"id": 2, "local": "Corea del Sur", "bandera_local": "https://flagcdn.com/w40/kr.png", "visitante": "Rep. Checa", "bandera_visitante": "https://flagcdn.com/w40/cz.png", "hora_utc": "05:00"},
-    {"id": 3, "local": "Canadá", "bandera_local": "https://flagcdn.com/w40/ca.png", "visitante": "Bosnia", "bandera_visitante": "https://flagcdn.com/w40/ba.png", "hora_utc": "22:00"},
-    {"id": 4, "local": "EE.UU.", "bandera_local": "https://flagcdn.com/w40/us.png", "visitante": "Paraguay", "bandera_visitante": "https://flagcdn.com/w40/py.png", "hora_utc": "04:00"}
+    {"id": 1, "local": "México", "bandera_local": "https://flagcdn.com/w40/mx.png", "visitante": "Sudáfrica", "bandera_visitante": "https://flagcdn.com/w40/za.png", "hora_arg": "16:00"},
+    {"id": 2, "local": "Corea del Sur", "bandera_local": "https://flagcdn.com/w40/kr.png", "visitante": "Rep. Checa", "bandera_visitante": "https://flagcdn.com/w40/cz.png", "hora_arg": "19:00"},
+    {"id": 3, "local": "Canadá", "bandera_local": "https://flagcdn.com/w40/ca.png", "visitante": "Bosnia", "bandera_visitante": "https://flagcdn.com/w40/ba.png", "hora_arg": "16:00"},
+    {"id": 4, "local": "EE.UU.", "bandera_local": "https://flagcdn.com/w40/us.png", "visitante": "Paraguay", "bandera_visitante": "https://flagcdn.com/w40/py.png", "hora_arg": "22:00"}
 ]
 
 def cargar_pronosticos():
@@ -50,7 +49,7 @@ TEMPLATE = """
             <form action="/guardar" method="POST" class="partido-tarjeta">
                 <input type="hidden" name="partido_id" value="{{ p.id }}">
                 <div style="width: 140px;"><img src="{{ p.bandera_local }}" width="20"> {{ p.local }}</div>
-                <strong>{{ ajustar_hora(p.hora_utc) }} hs</strong>
+                <strong>{{ p.hora_arg }} hs</strong>
                 <input type="number" name="goles_local" class="input-gol" required> - 
                 <input type="number" name="goles_visitante" class="input-gol" required>
                 <div style="width: 140px; text-align: right;">{{ p.visitante }} <img src="{{ p.bandera_visitante }}" width="20"></div>
@@ -75,7 +74,7 @@ TEMPLATE = """
 @app.route("/")
 def index():
     if "usuario" not in session: return redirect("/login")
-    return render_template_string(TEMPLATE, partidos=partidos, pronosticos=cargar_pronosticos(), usuarios_db=usuarios_db, usuario_actual=session["usuario"], ajustar_hora=ajustar_hora)
+    return render_template_string(TEMPLATE, partidos=partidos, pronosticos=cargar_pronosticos(), usuarios_db=usuarios_db, usuario_actual=session["usuario"])
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
