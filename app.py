@@ -22,10 +22,6 @@ pronosticos = []
 
 def obtener_ranking():
     usuarios_ranking = {user: {"puntos": 0} for user in usuarios_db.keys()}
-    for p in pronosticos:
-        u = p["usuario"]
-        if u in usuarios_ranking:
-            usuarios_ranking[u]["puntos"] += 0
     return sorted(usuarios_ranking.items(), key=lambda x: x[1]["puntos"], reverse=True)
 
 TEMPLATE = """
@@ -37,6 +33,7 @@ TEMPLATE = """
     .caja { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
     .partido-tarjeta { display: flex; align-items: center; justify-content: space-between; background: #3d3d3d; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
     .input-gol { width: 40px; text-align: center; background: #555; border: none; color: white; padding: 5px; }
+    button { padding: 5px 10px; background: #555; border: none; color: white; cursor: pointer; }
 </style></head><body>
 <div class="caja">Usuario: <strong>{{ usuario_actual|capitalize }}</strong> | <a href="/logout" style="color:red;">Salir</a></div>
 <div class="main-grid">
@@ -64,7 +61,7 @@ TEMPLATE = """
     </div>
     <div class="caja">
         <h2>🏆 Posiciones</h2>
-        {% for u, s in ranking %}<div>{{ u|capitalize }}</div>{% endfor %}
+        {% for u, s in ranking %}<div>{{ u|capitalize }}: <strong>{{ s.puntos }} pts</strong></div>{% endfor %}
     </div>
 </div></body></html>
 """
@@ -74,23 +71,22 @@ def index():
     if "usuario" not in session: return redirect("/login")
     return render_template_string(TEMPLATE, partidos=partidos, pronosticos=pronosticos, ranking=obtener_ranking(), usuario_actual=session["usuario"])
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=["POST"])
 def login():
-    if request.method == "POST":
-        u = request.form["usuario"].strip().lower()
-        if request.form["accion"] == "login" and u in usuarios_db:
-            session["usuario"] = u
-            return redirect("/")
-    return '<body style="background:#222;color:white;text-align:center;padding:50px;"><h2>⚽ Entrar</h2><form method="POST"><input name="usuario" placeholder="Usuario"><button name="accion" value="login">Entrar</button></form></body>'
+    u = request.form["usuario"].strip().lower()
+    if u in usuarios_db:
+        session["usuario"] = u
+        return redirect("/")
+    return "Usuario no encontrado"
 
 @app.route("/logout")
 def logout():
     session.pop("usuario", None)
-    return redirect("/login")
+    return redirect("/")
 
 @app.route("/guardar", methods=["POST"])
 def guardar():
-    if "usuario" not in session: return redirect("/login")
+    if "usuario" not in session: return redirect("/")
     p_id = int(request.form["partido_id"])
     p_el = next(p for p in partidos if p["id"] == p_id)
     global pronosticos
